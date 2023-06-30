@@ -30,17 +30,9 @@ def find_file_ids(d, creds):
 
         for key in d.keys():
             q_param = f"'{d[key]}' in parents and trashed=false"
-            # Call the Drive v3 API
-            # results = service.files().list(
-            #     pageSize=10, q="'1QkXA-nHZDEvHyGyAlP1ufnAhba-hO6FI' in parents and trashed=false", driveId="0AP5OUkOYBj0_Uk9PVA", includeItemsFromAllDrives=True, supportsAllDrives=True, corpora="drive", fields="nextPageToken, files(id, name)").execute()
-            # items = service.files().get(fileId=folderId).execute()
-            # items = results.get('files', []
             results = service.files().list(pageSize=10, q=q_param, supportsAllDrives=True,
                                            includeItemsFromAllDrives=True, fields="nextPageToken, files(id, name)").execute()
             items = results.get('files', [])
-
-            # q_param2 = f"'{A_folder}' in parents and trashed=false"
-            # results2 = service.files().list(pageSize=10, q=q_param, supportsAllDrives=True, includeItemsFromAllDrives=True, fields="nextPageToken, files(id, name)").execute()
             if not items:
                 print('No files found.')
             print('Files:')
@@ -118,7 +110,7 @@ def get_credentials():
 def start_extracting():
     creds = get_credentials()
     d = {"a": "1vRzFoK6DQGx3_88slAR5FgIZ3JFl29HB", "b": "1xeBvqFRJYFv88qoPp5KgK3t9EoTrJqaW",
-         "c": "1Hxytx8_7E2oc6KZ-uebkwqguR5gVKsZz", "d": "1FRULxbpH4tDA_LQDmocbvnLk6-XqrZB5"}
+         "c": "1Hxytx8_7E2oc6KZ-uebkwqguR5gVKsZz", "d": "1FRULxbpH4tDA_LQDmocbvnLk6-XqrZB5", "others": "1iZnH8CBrtfnPMJHYneQ24iFEQkoYJRI1"}
 
     # search for all the files in the respective folders
     find_file_ids(d, creds)
