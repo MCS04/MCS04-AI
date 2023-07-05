@@ -3,3 +3,7 @@ EBN-Grade-Classification/data
 credentials.json
 venv
 .idea
+
+# resnet50 model is 400 mb, decided to not include it
+EBN-Grade-Classification/src/models/resnet50/resnet50model/
+EBN-Grade-Classification/src/models/resnet50/resnet50model.zip
