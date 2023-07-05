@@ -1,3 +1,3 @@
 # ebn-classification
 
-1. Run extract_data.py to extract the data from Google Drive!
+1. Watch the video [here](https://drive.google.com/file/d/1v7Nhy3WeWVQOsH6TpYuZv1Q1gCXyaMOy/view?usp=sharing) to run the deep learning models!
