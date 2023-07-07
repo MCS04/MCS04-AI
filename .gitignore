@@ -12,6 +12,9 @@ venv
 EBN-Grade-Classification/src/models/resnet50/resnet50model/
 EBN-Grade-Classification/src/models/resnet50/resnet50model.zip
 
+# YOLO model is more than 100 mb, decided to not include it
+EBN-Grade-Classification/src/models/yolo v5/yolov8x.pt/
+
 # data
 EBN-Grade-Classification/data
 EBN-Grade-Classification/grades
