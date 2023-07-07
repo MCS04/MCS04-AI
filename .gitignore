@@ -1,6 +1,6 @@
 # tokens
 token.json
-credentials.json
+EBN-Grade-Classification/src/credentials.json
 
 # virtual environment
 venv
@@ -13,10 +13,14 @@ EBN-Grade-Classification/src/models/resnet50/resnet50model/
 EBN-Grade-Classification/src/models/resnet50/resnet50model.zip
 
 # YOLO model is more than 100 mb, decided to not include it
-EBN-Grade-Classification/src/models/yolo v5/yolov8x.pt/
+/EBN-Grade-Classification/src/models/yoloV8/yolov8x.pt
 
 # data
-EBN-Grade-Classification/data
-EBN-Grade-Classification/grades
-EBN-Grade-Classification/colour
-EBN-Grade-Classification/feather
+EBN-Grade-Classification/data/
+EBN-Grade-Classification/grades/
+EBN-Grade-Classification/colour/
+EBN-Grade-Classification/feather/
+/EBN-Grade-Classification/src/EBN-Grade-Classification/data
+/EBN-Grade-Classification/src/EBN-Grade-Classification/grades
+/EBN-Grade-Classification/src/EBN-Grade-Classification/colour
+/EBN-Grade-Classification/src/EBN-Grade-Classification/feather
