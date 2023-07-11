@@ -106,7 +106,7 @@ def get_credentials():
 def start_extracting():
     creds = get_credentials()
     grades = {"a": "1vRzFoK6DQGx3_88slAR5FgIZ3JFl29HB", "b": "1xeBvqFRJYFv88qoPp5KgK3t9EoTrJqaW",
-              "c": "1Hxytx8_7E2oc6KZ-uebkwqguR5gVKsZz", "d": "1FRULxbpH4tDA_LQDmocbvnLk6-XqrZB5", "others": "1iZnH8CBrtfnPMJHYneQ24iFEQkoYJRI1"}
+              "c": "1Hxytx8_7E2oc6KZ-uebkwqguR5gVKsZz", "others": "1iZnH8CBrtfnPMJHYneQ24iFEQkoYJRI1"}
 
     colour = {"yellow": "1uy5cBbn5jwJoNOv9z7rTjsI-Bo1soD9C", "white": "1S-PqlSZoSKX1AtyKUUZgu6j-EZHMBC7I", "swamp-green": "1S-PqlSZoSKX1AtyKUUZgu6j-EZHMBC7I",
               "pink": "1qC5wXjwrpIaNhOVZaUB4WO_tzkSbk_Fr", "off-white": "1_8-pLjiYTsofZXdrf-sDSYW4eMosy4RD", "mixture": "1Rl7vfDtGuUfCbyW_G6da9Iw4c9cY7aO-", "grey": "1waFcHdbr-GhBgNcUCAvHAQuVZHn0YNIs", "dark-green": "1XCS05lSOP0KNDaQ9RVqz_sjQI9J0JT8k", "beige": "1lyPDVm_0GSQI3QDnzjePwi1xYFxqoL5q"}
@@ -116,8 +116,6 @@ def start_extracting():
 
     # search for all the files in the respective folders
     find_file_ids(grades, creds, "grades")
-    find_file_ids(colour, creds, "colour")
-    find_file_ids(feather, creds, "feather")
 
 
 if __name__ == '__main__':
