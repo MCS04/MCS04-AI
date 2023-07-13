@@ -24,3 +24,6 @@ EBN-Grade-Classification/feather/
 /EBN-Grade-Classification/src/EBN-Grade-Classification/grades
 /EBN-Grade-Classification/src/EBN-Grade-Classification/colour
 /EBN-Grade-Classification/src/EBN-Grade-Classification/feather
+
+# website cache
+website/__pycache__
