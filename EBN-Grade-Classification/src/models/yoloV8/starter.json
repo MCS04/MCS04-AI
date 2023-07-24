@@ -1,0 +1,11 @@
+{
+    "augmentation": {
+        "rotate": {
+            "degrees": 45
+        }
+    },
+    "preprocessing": {
+        "auto-orient": true,
+        "grayscale": true
+    }
+}
