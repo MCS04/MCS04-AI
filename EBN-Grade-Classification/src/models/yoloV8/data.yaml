@@ -1,0 +1,14 @@
+path: C:\Users\User\Documents\GitHub\Research\EBN\MCS04-AI\EBN-Grade-Classification\src\models\yoloV8
+train: train/images
+val: valid/images
+test: test/images
+
+nc: 3
+names: ['0', '1', '2']
+
+roboflow:
+  workspace: ebn
+  project: bird-nest-exr6l
+  version: 2
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/ebn/bird-nest-exr6l/dataset/2

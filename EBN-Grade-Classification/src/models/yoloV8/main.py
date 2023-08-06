@@ -44,7 +44,7 @@ generate_and_train(projects[0], configuration)
 def apply_multiple_experiments(project: str) -> None:
     """
     For each configuration in the "configurations" folder,
-    generate and train a modelfor the specified project.
+    generate and train a model for the specified project.
     """
     for configuration in os.listdir("configurations"):
         with open(f"configurations/{configuration}") as f:

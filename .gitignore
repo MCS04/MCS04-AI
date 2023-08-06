@@ -24,9 +24,11 @@ EBN-Grade-Classification/feather/
 /EBN-Grade-Classification/src/EBN-Grade-Classification/grades
 /EBN-Grade-Classification/src/EBN-Grade-Classification/colour
 /EBN-Grade-Classification/src/EBN-Grade-Classification/feather
-/EBN-Grade-Classification/src/models/yoloV8/test/
-/EBN-Grade-Classification/src/models/yoloV8/train/
-/EBN-Grade-Classification/src/models/yoloV8/valid/
+/EBN-Grade-Classification/src/models/yoloV8/test
+/EBN-Grade-Classification/src/models/yoloV8/train
+/EBN-Grade-Classification/src/models/yoloV8/valid
+
 
 # website cache
 website/__pycache__
+/runs/
