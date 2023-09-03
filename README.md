@@ -7,3 +7,5 @@
 ```
 gradio webapp.py
 ```
+Current Progress on Website:
+1. Yolov8 option able to output a single grade of highest confidence and an image with bounding box that detects area that contains EBN.
