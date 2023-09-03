@@ -71,7 +71,10 @@ def yolov8(img_path):
         confidence_score = bounding_box['confidence']
 
         detection_results = bounding_box
-        class_and_confidence = (class_name, confidence_score)
+        print(detection_results)
+
+        grade_name = switch_grade(class_name)
+        class_and_confidence = {grade_name: confidence_score}
         print(class_and_confidence, '\n')
 
     predictions.save("prediction.jpg")
@@ -80,6 +83,15 @@ def yolov8(img_path):
 
     # infer on an image hosted elsewhere
     # print(model.predict("URL_OF_YOUR_IMAGE", hosted=True, confidence=40, overlap=30).json())
+
+
+def switch_grade(key):
+    if key == "0":
+        return "Grade A"
+    elif key == "1":
+        return "Grade B"
+    elif key == "2":
+        return "Grade C"
 
 
 # test mock model
@@ -97,14 +109,19 @@ def test_model(inp):
 
 def classify(img, model):
     print("Classified model!")
+    # print(img)
+    # print(model)
     result = ""
     if model == Model.RESNET50.value:
-        print("mobilenet")
+        # print("Running mobilenet")
         result = test_model(img)
 
-    elif model == Model.YOLOV8:
-        print("yolov8")
-        result = yolov8(img)
+    elif model == Model.YOLOV8.value:
+        # print("Running yolov8")
+        result = [yolov8(img), "prediction.jpg", ]
+
+    else:
+        print("no value match found")
 
     return result
 
@@ -136,15 +153,18 @@ with gr.Blocks() as demo:
     with gr.Tab("Upload Image"):
         with gr.Row():
             with gr.Column():
-                image_input = gr.Image(type="filepath")
+                image_input = gr.Image(
+                    type="filepath", label="Upload EBN Image")
                 # , shape=(224, 224)
                 # text_input = gr.Textbox()    # for testing purposes
                 image_model_input = gr.Dropdown(
                     models, label='Select your Prediction Model')
                 image_button = gr.Button("Predict")
             with gr.Column():
-                text_output = gr.Textbox()
-                image_output = gr.Label(num_top_classes=3)
+                # text_output = gr.Textbox()
+                image_output = gr.Label(
+                    num_top_classes=3, label="Grade Prediction Output")
+                box_output = gr.Image(shape=(56, 56), label="Detected Area")
 
     with gr.Tab("Real-Time Video Streaming"):
         with gr.Row():
@@ -158,7 +178,7 @@ with gr.Blocks() as demo:
 
     # image_button.click(test, inputs = text_input, outputs = image_output)    # for testing purposes
     image_button.click(classify, inputs=[
-                       image_input, image_model_input], outputs=text_output)
+                       image_input, image_model_input], outputs=[image_output, box_output])
     # video_button.click(test, inputs=[video_input, video_model_input], outputs=[video_output])
 
     gr.Markdown(
