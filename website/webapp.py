@@ -7,13 +7,15 @@ import gradio as gr
 from enum import Enum
 import numpy as np
 import random as rand
-import asyncio
+import cv2
+from PIL import Image
 
 
 # Import for deep learning purposes
 import tensorflow as tf
 from tensorflow import keras
 from roboflow import Roboflow
+from ultralytics import YOLO
 
 # test
 import requests
@@ -22,14 +24,21 @@ import requests
 response = requests.get("https://git.io/JJkYN")
 labels = response.text.split("\n")
 
-# Gradio library import
+# Importing roboflow project
+# rf = Roboflow(api_key="SuklAeRTbtD1k4yDlJsC")
+# project = rf.workspace().project("bird-nest-exr6l")
+# model = project.version(2).model
+
+# Importing deep learning models
+model = YOLO('yolov8n.pt')
+model = YOLO('weights/best.pt')
+model.fuse()
 
 
 class Model(Enum):
     RESNET50 = "resnet50"
     YOLOV8 = "yolov8"
-
-# Put ML Model here
+    MOBILENET = "mobilenet"
 
 
 def resnet50(img):
@@ -45,47 +54,41 @@ def resnet50(img):
     return f"This is Grade {class_label}"
 
 
-def yolov8(img_path):
-    print("Running yolov8!")
-    rf = Roboflow(api_key="SuklAeRTbtD1k4yDlJsC")
-    project = rf.workspace().project("bird-nest-exr6l")
-    model = project.version(2).model
+def yolov8_ebn(img_path):
+    results = model(img_path)
 
-    # infer on a local image
-    # print(model.predict("Test.jpg", confidence=40, overlap=30).json())
+    xyxys = []
+    confidences = []
+    class_ids = []
 
-    # visualize your prediction
-    # model.predict("Test.jpg", confidence=40, overlap=30).save("prediction.jpg")
+    for result in results:
+        boxes = result.boxes.numpy()
 
-    predictions = model.predict(img_path, confidence=40, overlap=30)
-    predictions_json = predictions.json
+        xyxys.append(boxes.xyxy)
+        confidences.append(boxes.conf)
+        class_ids.append(boxes.cls)
 
-    print(predictions_json)
+        print(boxes.xyxy)
+        print("------------------------------------------------------------------")
+        print(boxes.conf[0])
+        print("------------------------------------------------------------------")
+        print(boxes.cls[0])
+        print("------------------------------Done--------------------------------")
 
-    for bounding_box in predictions:
-        # x0 = bounding_box['x'] - bounding_box['width'] / 2#start_column
-        # x1 = bounding_box['x'] + bounding_box['width'] / 2#end_column
-        # y0 = bounding_box['y'] - bounding_box['height'] / 2#start row
-        # y1 = bounding_box['y'] + bounding_box['height'] / 2#end_row
-        class_name = bounding_box['class']
-        confidence_score = bounding_box['confidence']
-
-        detection_results = bounding_box
-        print(detection_results)
-
-        grade_name = switch_grade(class_name)
-        class_and_confidence = {grade_name: confidence_score}
+        grade_name = switch_grade(int(boxes.cls[0]))
+        class_and_confidence = {grade_name: boxes.conf[0].item()}
         print(class_and_confidence, '\n')
 
-    predictions.save("prediction.jpg")
+        im_array = result.plot()  # plot a BGR numpy array of predictions
+        im = Image.fromarray(im_array[..., ::-1])  # RGB PIL image
+        im.show()
+        im.save('results.jpg')  # save image
 
     return class_and_confidence
 
-    # infer on an image hosted elsewhere
-    # print(model.predict("URL_OF_YOUR_IMAGE", hosted=True, confidence=40, overlap=30).json())
-
 
 def switch_grade(key):
+    key = str(key)
     if key == "0":
         return "Grade A"
     elif key == "1":
@@ -109,8 +112,6 @@ def test_model(inp):
 
 def classify(img, model):
     print("Classified model!")
-    # print(img)
-    # print(model)
     result = ""
     if model == Model.RESNET50.value:
         # print("Running mobilenet")
@@ -118,7 +119,8 @@ def classify(img, model):
 
     elif model == Model.YOLOV8.value:
         # print("Running yolov8")
-        result = [yolov8(img), "prediction.jpg", ]
+        result = [yolov8_ebn(img), "results.jpg"]
+        print("result returned!")
 
     else:
         print("no value match found")
@@ -126,7 +128,7 @@ def classify(img, model):
     return result
 
 
-def test(a):
+def test(a, b):
     try:
         # Validate input (e.g., check if input_image is not None and of the correct type)
         if a is None:
@@ -166,26 +168,45 @@ with gr.Blocks() as demo:
                     num_top_classes=3, label="Grade Prediction Output")
                 box_output = gr.Image(shape=(56, 56), label="Detected Area")
 
+        # Examples
+        gr.Markdown("## EBN Image Examples (Grade A, B, C & multi-EBN image)")
+        example_images = [
+            ["./sample_images/test_1.jpg", "yolov8"],
+            ["./sample_images/test_2.jpg", "yolov8"],
+            ["./sample_images/test_3.jpg", "yolov8"],
+            ["./sample_images/EBN_comparison.png", "yolov8"]
+        ]
+        gr.Examples(
+            examples=example_images,
+            inputs=[image_input, image_model_input]
+        )
+
     with gr.Tab("Real-Time Video Streaming"):
         with gr.Row():
             with gr.Column():
-                video_input = gr.Image(source="webcam", streaming=True)
+                video_input = gr.Image(source="webcam")
                 video_model_input = gr.Dropdown(
                     models, label='Select your Prediction Model')
                 video_button = gr.Button("Start Prediction")
             with gr.Column():
-                video_output = gr.Label(num_top_classes=3)
+                video_output = gr.Label(
+                    num_top_classes=3, label="Grade Prediction Output")
+                vid_box_output = gr.Image(shape=(56, 56))
 
     # image_button.click(test, inputs = text_input, outputs = image_output)    # for testing purposes
     image_button.click(classify, inputs=[
                        image_input, image_model_input], outputs=[image_output, box_output])
-    # video_button.click(test, inputs=[video_input, video_model_input], outputs=[video_output])
+    video_button.click(classify, inputs=[
+                       video_input, video_model_input], outputs=[video_output, vid_box_output])
 
     gr.Markdown(
         """
         <center><p>Special thanks to Dr Lim Mei Kuan, Dr Chong Chun Yong & Dr Lai Weng Kin</p></center>
         """
     )
+
+# input_image = [gr.Image(type="filepath", label="Upload EBN Image"), gr.Dropdown(models, label='Select your Prediction Model')]
+# output_image = [gr.Label(num_top_classes=3, label="Grade Prediction Output"), gr.Image(shape=(56, 56), label="Detected Area")]
 
 
 if __name__ == "__main__":
