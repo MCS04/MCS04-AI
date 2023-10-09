@@ -54,7 +54,7 @@ def resnet50(img):
     return f"This is Grade {class_label}"
 
 
-def yolov8_ebn(img_path):
+def yolov8_ebn(img_path, inp_format):
     results = model(img_path)
 
     xyxys = []
@@ -62,26 +62,37 @@ def yolov8_ebn(img_path):
     class_ids = []
 
     for result in results:
+
         boxes = result.boxes.numpy()
 
         xyxys.append(boxes.xyxy)
         confidences.append(boxes.conf)
         class_ids.append(boxes.cls)
 
-        print(boxes.xyxy)
-        print("------------------------------------------------------------------")
-        print(boxes.conf[0])
-        print("------------------------------------------------------------------")
-        print(boxes.cls[0])
-        print("------------------------------Done--------------------------------")
+        if (len(boxes.conf) == 0):
+            class_and_confidence = {"No detection found": 0}
 
-        grade_name = switch_grade(int(boxes.cls[0]))
-        class_and_confidence = {grade_name: boxes.conf[0].item()}
-        print(class_and_confidence, '\n')
+        else:
+            print(boxes.xyxy)
+            print("------------------------------------------------------------------")
+            print(boxes.conf[0])
+            print("------------------------------------------------------------------")
+            print(boxes.cls[0])
+            print("------------------------------Done--------------------------------")
 
+            grade_name = switch_grade(int(boxes.cls[0]))
+            class_and_confidence = {grade_name: boxes.conf[0].item()}
+            print(class_and_confidence, '\n')
+
+        # print(im_array)
         im_array = result.plot()  # plot a BGR numpy array of predictions
-        im = Image.fromarray(im_array[..., ::-1])  # RGB PIL image
-        im.show()
+
+        if (inp_format == 0):
+            im = Image.fromarray(im_array[..., ::-1])  # RGB PIL image
+        else:
+            im = Image.fromarray(im_array[...])
+
+        # im.show()
         im.save('results.jpg')  # save image
 
     return class_and_confidence
@@ -110,7 +121,29 @@ def test_model(inp):
     return [confidences, confidences]
 
 
-def classify(img, model):
+def classify(img, model, inp_format):
+    print("Classified model!")
+    result = ""
+    if model == Model.RESNET50.value:
+        # print("Running mobilenet")
+        result = test_model(img)
+
+    elif model == Model.YOLOV8.value:
+        # print("Running yolov8")
+        result = [yolov8_ebn(img, inp_format), "results.jpg"]
+        print("result returned!")
+
+    else:
+        print("no value match found")
+
+    return result
+
+
+def flip(im, a):
+    return ["cat", np.flipud(im)]
+
+
+def video_classify(img, model):
     print("Classified model!")
     result = ""
     if model == Model.RESNET50.value:
@@ -162,6 +195,7 @@ with gr.Blocks() as demo:
                 image_model_input = gr.Dropdown(
                     models, label='Select your Prediction Model')
                 image_button = gr.Button("Predict")
+                image_id = gr.Number(0, visible=False)
             with gr.Column():
                 # text_output = gr.Textbox()
                 image_output = gr.Label(
@@ -184,20 +218,23 @@ with gr.Blocks() as demo:
     with gr.Tab("Real-Time Video Streaming"):
         with gr.Row():
             with gr.Column():
-                video_input = gr.Image(source="webcam")
+                video_input = gr.Image(source="webcam", streaming=True)
                 video_model_input = gr.Dropdown(
                     models, label='Select your Prediction Model')
                 video_button = gr.Button("Start Prediction")
+                video_id = gr.Number(1, visible=False)
             with gr.Column():
                 video_output = gr.Label(
                     num_top_classes=3, label="Grade Prediction Output")
                 vid_box_output = gr.Image(shape=(56, 56))
+                clear_video_button = gr.ClearButton(
+                    [video_output, vid_box_output])
 
     # image_button.click(test, inputs = text_input, outputs = image_output)    # for testing purposes
     image_button.click(classify, inputs=[
-                       image_input, image_model_input], outputs=[image_output, box_output])
+                       image_input, image_model_input, image_id], outputs=[image_output, box_output])
     video_button.click(classify, inputs=[
-                       video_input, video_model_input], outputs=[video_output, vid_box_output])
+                       video_input, video_model_input, video_id], outputs=[video_output, vid_box_output])
 
     gr.Markdown(
         """
@@ -211,31 +248,3 @@ with gr.Blocks() as demo:
 
 if __name__ == "__main__":
     demo.launch(debug=True)
-
-
-# if want to test just uncomment and use this
-"""
-radio = gr.Radio([Model.RESNET50, Model.YOLOV8], label="Models")
-inputs = [gr.Image(
-    shape=(256, 256)), radio]
-demo = gr.Interface(fn=classify, inputs=inputs,
-                    outputs=gr.Label(num_top_classes=3))
-"""
-
-"""
-with gr.Blocks() as demo:
-    gr.Markdown("Choose your model")
-    with gr.Tab("ResNet50"):
-        with gr.Row():
-            resnet50_input = gr.Image(shape=(256, 256))
-            resnet50_output = gr.Label(num_top_classes=3)    
-        resnet50_submit_button = gr.Button("Predict")
-    with gr.Tab("Yolov8"):
-        with gr.Row():
-            yolov8_input = gr.Video(source="webcam")    # add streaming=True or live=True? check thru
-            yolov8output = gr.Label(num_top_classes=3)                   # with yolo system? fetch grade from rectangle? 
-        yolov8_submit_button = gr.Button("Predict")
-
-    resnet50_submit_button.click(resnet50, inputs=resnet50_input, outputs=resnet50_output)
-    # yolov8_button.click(yolov8, inputs=yolov8_input, outputs=yolov8_output)
-"""
