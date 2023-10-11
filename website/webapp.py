@@ -1,7 +1,3 @@
-# import sys
-
-# sys.path.insert(1, 'C:\Users\SC Wintech\Documents\mcs04\MCS04-AI\EBN-Grade-Classification')
-
 # Standard imports
 import gradio as gr
 from enum import Enum
@@ -121,12 +117,16 @@ def test_model(inp):
     return [confidences, confidences]
 
 
-def classify(img, model, inp_format):
+def flip(im, a):
+    return ["cat", np.flipud(im)]
+
+
+def image_classify(img, model, inp_format):
     print("Classified model!")
     result = ""
     if model == Model.RESNET50.value:
         # print("Running mobilenet")
-        result = test_model(img)
+        result = resnet50(img)
 
     elif model == Model.YOLOV8.value:
         # print("Running yolov8")
@@ -139,20 +139,18 @@ def classify(img, model, inp_format):
     return result
 
 
-def flip(im, a):
-    return ["cat", np.flipud(im)]
-
-
-def video_classify(img, model):
+def video_classify(img, model, inp_format):
     print("Classified model!")
     result = ""
     if model == Model.RESNET50.value:
         # print("Running mobilenet")
-        result = test_model(img)
+        result = resnet50(img)
 
     elif model == Model.YOLOV8.value:
+        cont = True
         # print("Running yolov8")
-        result = [yolov8_ebn(img), "results.jpg"]
+
+        result = [yolov8_ebn(img, inp_format), "results.jpg"]
         print("result returned!")
 
     else:
@@ -201,6 +199,8 @@ with gr.Blocks() as demo:
                 image_output = gr.Label(
                     num_top_classes=3, label="Grade Prediction Output")
                 box_output = gr.Image(shape=(56, 56), label="Detected Area")
+                clear_image_button = gr.ClearButton(
+                    [image_output, box_output])
 
         # Examples
         gr.Markdown("## EBN Image Examples (Grade A, B, C & multi-EBN image)")
@@ -231,9 +231,11 @@ with gr.Blocks() as demo:
                     [video_output, vid_box_output])
 
     # image_button.click(test, inputs = text_input, outputs = image_output)    # for testing purposes
-    image_button.click(classify, inputs=[
+    image_button.click(image_classify, inputs=[
                        image_input, image_model_input, image_id], outputs=[image_output, box_output])
-    video_button.click(classify, inputs=[
+    # video_input.change(video_classify, inputs=[
+    #                    video_input, video_model_input, video_id], outputs=[video_output, vid_box_output], queue=True, every=5.0)
+    video_button.click(video_classify, inputs=[
                        video_input, video_model_input, video_id], outputs=[video_output, vid_box_output])
 
     gr.Markdown(
@@ -247,4 +249,5 @@ with gr.Blocks() as demo:
 
 
 if __name__ == "__main__":
+    # demo.queue().launch(debug=True)
     demo.launch(debug=True)
