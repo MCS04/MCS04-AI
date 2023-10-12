@@ -22,6 +22,7 @@ tensorflow < 2.11
 # tensorboard>=2.4.1
 # clearml>=1.2.0
 # comet
+roboflow
 
 # Plotting --------------------------------------------------------------------
 pandas>=1.1.4
@@ -48,3 +49,8 @@ setuptools>=65.5.1 # Snyk vulnerability fix
 # mss  # screenshots
 # albumentations>=1.0.3
 # pycocotools>=2.0.6  # COCO mAP
+
+# detectron2
+git+https://github.com/facebookresearch/detectron2.git
+opencv-python
+# torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118 # this one is compiled with cuda and is 2.7GB!!!

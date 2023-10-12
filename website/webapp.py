@@ -13,6 +13,16 @@ from tensorflow import keras
 from roboflow import Roboflow
 from ultralytics import YOLO
 
+# detectron2 stuff
+from detectron2.config import get_cfg
+from detectron2.utils.visualizer import Visualizer
+from detectron2 import model_zoo
+from detectron2.engine import DefaultPredictor
+import os
+import cv2
+import torch
+import torchvision
+
 # test
 import requests
 
@@ -30,11 +40,23 @@ model = YOLO('yolov8n.pt')
 model = YOLO('weights/best.pt')
 model.fuse()
 
+# importing the detectron2 models
+cfg = get_cfg()
+cfg.MODEL.DEVICE = "cpu"
+cfg.merge_from_file(model_zoo.get_config_file(
+    "COCO-Detection/faster_rcnn_R_50_FPN_3x.yaml"))
+cfg.OUTPUT_DIR = "./weights"
+cfg.MODEL.WEIGHTS = os.path.join(cfg.OUTPUT_DIR, "model_final.pth")
+cfg.MODEL.ROI_HEADS.NUM_CLASSES = 4  # your number of classes + 1
+cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.5
+predictor = DefaultPredictor(cfg)
+
 
 class Model(Enum):
     RESNET50 = "resnet50"
     YOLOV8 = "yolov8"
-    MOBILENET = "mobilenet"
+    MOBILENET = "mobilenetv2"
+    DETECTRON = "detectron2"
 
 
 def resnet50(img):
@@ -48,6 +70,65 @@ def resnet50(img):
     class_label = labels[max_index]
 
     return f"This is Grade {class_label}"
+
+
+def detectron2(img, isVideo):
+    if not isVideo:
+        img = cv2.imread(img)
+
+        # testing purposes
+        # cv2.imshow("widnow", img)
+        # key = cv2.waitKey(10000)
+        # if key == 27:
+        #     cv2.destroyAllWindows()
+        # cv2.destroyAllWindows()
+
+    else:
+        img = img[:, :, ::-1] # rgb terbalik for video streaming, no need to cv2.imread as it comes in a numpy array
+
+        # testing purposes
+        # cv2.imshow("window", img)
+        # key = cv2.waitKey(10000)
+        # if key == 27:
+        #     cv2.destroyAllWindows()
+        # cv2.destroyAllWindows()
+
+    outputs = predictor(img)
+    print(outputs)
+
+    v = Visualizer(img[:, :, ::-1],
+                   scale=0.8
+                   )
+    class_and_confidence = {}
+
+    out = v.draw_instance_predictions(outputs["instances"].to("cpu"))
+
+    # getting the predicted classes
+    pred_classes = outputs["instances"].pred_classes
+    pred_classes_list = pred_classes.cpu().numpy().tolist()
+
+    # getting the predicted scores
+    scores = outputs["instances"].scores
+    scores_list = scores.cpu().numpy().tolist()
+
+    # grades dictionary(different from yolov8)
+    grade_dict = {1: "Grade A", 2: "Grade B", 3: "Grade C"}
+
+    if len(pred_classes_list) == 0:
+        class_and_confidence = {"No detection found": 0}
+
+    else:
+        for idx in range(len(pred_classes_list)):
+            grade = grade_dict[pred_classes_list[idx]]
+            
+            # takes the highest confidence level of each grade
+            if grade in class_and_confidence:
+                class_and_confidence[grade] = max(
+                    class_and_confidence[grade], scores_list[idx])
+            else:
+                class_and_confidence[grade] = scores_list[idx]
+
+    return [class_and_confidence, out.get_image()]
 
 
 def yolov8_ebn(img_path, inp_format):
@@ -133,6 +214,10 @@ def image_classify(img, model, inp_format):
         result = [yolov8_ebn(img, inp_format), "results.jpg"]
         print("result returned!")
 
+    elif model == Model.DETECTRON.value:
+        # print("Running detectron2")
+        result = detectron2(img, False)
+        
     else:
         print("no value match found")
 
@@ -153,6 +238,10 @@ def video_classify(img, model, inp_format):
         result = [yolov8_ebn(img, inp_format), "results.jpg"]
         print("result returned!")
 
+    elif model == Model.DETECTRON.value:
+        # print("Running detectron2")
+        result = detectron2(img, True)
+        
     else:
         print("no value match found")
 
@@ -173,7 +262,7 @@ def test(a, b):
         return f"An error occurred: {str(e)}"
 
 
-models = ['resnet50', 'yolov8']
+models = ['resnet50', 'yolov8', 'detectron2', 'mobilenetv2']
 
 with gr.Blocks() as demo:
     gr.Markdown(
