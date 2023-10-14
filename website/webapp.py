@@ -35,7 +35,7 @@ labels = response.text.split("\n")
 # project = rf.workspace().project("bird-nest-exr6l")
 # model = project.version(2).model
 
-# Importing deep learning models
+# Importing yolov8 models
 model = YOLO('yolov8n.pt')
 model = YOLO('weights/best.pt')
 model.fuse()
@@ -53,26 +53,26 @@ predictor = DefaultPredictor(cfg)
 
 
 class Model(Enum):
-    RESNET50 = "resnet50"
     YOLOV8 = "yolov8"
     MOBILENET = "mobilenetv2"
     DETECTRON = "detectron2"
 
 
-def resnet50(img):
+# def resnet50(img):
 
-    img = np.expand_dims(img, axis=0)
-    model = keras.models.load_model(
-        "../EBN-Grade-Classification/src/models/resnet50/resnet50model")
-    prediction = model.predict(img)
-    labels = ["A", "B", "C"]
-    max_index = np.argmax(prediction)
-    class_label = labels[max_index]
+#     img = np.expand_dims(img, axis=0)
+#     model = keras.models.load_model(
+#         "../EBN-Grade-Classification/src/models/resnet50/resnet50model")
+#     prediction = model.predict(img)
+#     labels = ["A", "B", "C"]
+#     max_index = np.argmax(prediction)
+#     class_label = labels[max_index]
 
-    return f"This is Grade {class_label}"
+#     return f"This is Grade {class_label}"
 
 
 def detectron2(img, isVideo):
+    print("Running DETECTRON2......")
     if not isVideo:
         img = cv2.imread(img)
 
@@ -84,7 +84,8 @@ def detectron2(img, isVideo):
         # cv2.destroyAllWindows()
 
     else:
-        img = img[:, :, ::-1] # rgb terbalik for video streaming, no need to cv2.imread as it comes in a numpy array
+        # rgb terbalik for video streaming, no need to cv2.imread as it comes in a numpy array
+        img = img[:, :, ::-1]
 
         # testing purposes
         # cv2.imshow("window", img)
@@ -120,7 +121,7 @@ def detectron2(img, isVideo):
     else:
         for idx in range(len(pred_classes_list)):
             grade = grade_dict[pred_classes_list[idx]]
-            
+
             # takes the highest confidence level of each grade
             if grade in class_and_confidence:
                 class_and_confidence[grade] = max(
@@ -131,7 +132,8 @@ def detectron2(img, isVideo):
     return [class_and_confidence, out.get_image()]
 
 
-def yolov8_ebn(img_path, inp_format):
+def yolov8(img_path, inp_format):
+    print("Running YOLOV8......")
     results = model(img_path)
 
     xyxys = []
@@ -186,38 +188,43 @@ def switch_grade(key):
 
 
 # test mock model
-inception_net = tf.keras.applications.MobileNetV2()
+# inception_net = tf.keras.applications.MobileNetV2()
 
 
-def test_model(inp):
-    print("Running mobile net!")
-    inp = inp.reshape((-1, 224, 224, 3))
-    inp = tf.keras.applications.mobilenet_v2.preprocess_input(inp)
-    prediction = inception_net.predict(inp).flatten()
-    confidences = {labels[i]: float(prediction[i]) for i in range(1000)}
-    return [confidences, confidences]
+# def test_model(inp):
+#     print("Running mobile net!")
+#     inp = inp.reshape((-1, 224, 224, 3))
+#     inp = tf.keras.applications.mobilenet_v2.preprocess_input(inp)
+#     prediction = inception_net.predict(inp).flatten()
+#     confidences = {labels[i]: float(prediction[i]) for i in range(1000)}
+#     return [confidences, confidences]
 
 
-def flip(im, a):
-    return ["cat", np.flipud(im)]
+# def flip(im, a):
+#     return ["cat", np.flipud(im)]
 
 
 def image_classify(img, model, inp_format):
-    print("Classified model!")
-    result = ""
-    if model == Model.RESNET50.value:
-        # print("Running mobilenet")
-        result = resnet50(img)
+    print(img)
+    if img == None:
+        raise gr.Error(
+            "Please upload an image")
 
-    elif model == Model.YOLOV8.value:
+    # if not (img.lower().endswith(('.png', '.jpg', '.jpeg', 'bmp', 'tiff', 'tif', 'webp', 'pfm', 'dng'))):
+    #     raise gr.Error(
+    #         "Please upload a suitable image format (png, jpg, jpeg, bmp, webp, tiff, tif, pfm, dng)")
+
+    print("Classifying model......")
+    result = ""
+    if model == Model.YOLOV8.value:
         # print("Running yolov8")
-        result = [yolov8_ebn(img, inp_format), "results.jpg"]
+        result = [yolov8(img, inp_format), "results.jpg"]
         print("result returned!")
 
     elif model == Model.DETECTRON.value:
         # print("Running detectron2")
         result = detectron2(img, False)
-        
+
     else:
         print("no value match found")
 
@@ -225,44 +232,39 @@ def image_classify(img, model, inp_format):
 
 
 def video_classify(img, model, inp_format):
-    print("Classified model!")
+    print("Classifying model......")
     result = ""
-    if model == Model.RESNET50.value:
-        # print("Running mobilenet")
-        result = resnet50(img)
-
-    elif model == Model.YOLOV8.value:
-        cont = True
+    if model == Model.YOLOV8.value:
         # print("Running yolov8")
 
-        result = [yolov8_ebn(img, inp_format), "results.jpg"]
+        result = [yolov8(img, inp_format), "results.jpg"]
         print("result returned!")
 
     elif model == Model.DETECTRON.value:
         # print("Running detectron2")
         result = detectron2(img, True)
-        
+
     else:
         print("no value match found")
 
     return result
 
 
-def test(a, b):
-    try:
-        # Validate input (e.g., check if input_image is not None and of the correct type)
-        if a is None:
-            return "Invalid input: Image is missing or empty."
-        elif not isinstance(a, str):
-            return "Not a string"
+# def test(a, b):
+#     try:
+#         # Validate input (e.g., check if input_image is not None and of the correct type)
+#         if a is None:
+#             return "Invalid input: Image is missing or empty."
+#         elif not isinstance(a, str):
+#             return "Not a string"
 
-        # Replace this with your model's inference code
-        return "Success: " + a
-    except Exception as e:
-        return f"An error occurred: {str(e)}"
+#         # Replace this with your model's inference code
+#         return "Success: " + a
+#     except Exception as e:
+#         return f"An error occurred: {str(e)}"
 
 
-models = ['resnet50', 'yolov8', 'detectron2', 'mobilenetv2']
+models = ['yolov8', 'detectron2', 'mobilenetv2']
 
 with gr.Blocks() as demo:
     gr.Markdown(
