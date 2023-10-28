@@ -6,7 +6,6 @@ import random as rand
 import cv2
 from PIL import Image
 
-
 # Import for deep learning purposes
 import tensorflow as tf
 from tensorflow import keras
@@ -22,6 +21,15 @@ import os
 import cv2
 import torch
 import torchvision
+
+# mobilenet stuff
+import object_detection
+from object_detection.utils import label_map_util
+from object_detection.builders import model_builder
+from object_detection.utils import config_util
+from object_detection.utils import visualization_utils as viz_utils
+from matplotlib import pyplot as plt
+import operator
 
 # test
 import requests
@@ -51,6 +59,15 @@ cfg.MODEL.ROI_HEADS.NUM_CLASSES = 4  # your number of classes + 1
 cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.5
 predictor = DefaultPredictor(cfg)
 
+# Load pipeline config and build a detection model
+configs = config_util.get_configs_from_pipeline_file("pipeline.config")
+detection_model = model_builder.build(model_config=configs['model'], is_training=False)
+
+# Restore checkpoint
+ckpt = tf.compat.v2.train.Checkpoint(model=detection_model)
+ckpt.restore(os.path.join(cfg.OUTPUT_DIR, 'ckpt-6')).expect_partial()
+
+category_index = label_map_util.create_category_index_from_labelmap("label_map.pbtxt")
 
 class Model(Enum):
     YOLOV8 = "yolov8"
@@ -69,6 +86,88 @@ class Model(Enum):
 #     class_label = labels[max_index]
 
 #     return f"This is Grade {class_label}"
+
+@tf.function
+def detect_fn(image):
+    image, shapes = detection_model.preprocess(image)
+    prediction_dict = detection_model.predict(image, shapes)
+    detections = detection_model.postprocess(prediction_dict, shapes)
+    return detections
+
+
+def mobilenet(img, isVideo):
+    print("Running MOBILENET......")
+    if not isVideo:
+        img = cv2.imread(img)
+
+    else:
+        # rgb terbalik for video streaming, no need to cv2.imread as it comes in a numpy array
+        img = img[:, :, ::-1]
+
+    image_np = np.array(img)
+
+    input_tensor = tf.convert_to_tensor(np.expand_dims(image_np, 0), dtype=tf.float32)
+    detections = detect_fn(input_tensor)
+
+    num_detections = int(detections.pop('num_detections'))
+    detections = {key: value[0, :num_detections].numpy()
+                for key, value in detections.items()}
+    detections['num_detections'] = num_detections
+
+    # detection_classes should be ints.
+    detections['detection_classes'] = detections['detection_classes'].astype(np.int64)
+
+    label_id_offset = 1
+    image_np_with_detections = image_np.copy()
+
+    viz_utils.visualize_boxes_and_labels_on_image_array(
+                image_np_with_detections,
+                detections['detection_boxes'],
+                detections['detection_classes']+label_id_offset,
+                detections['detection_scores'],
+                category_index,
+                use_normalized_coordinates=True,
+                max_boxes_to_draw=1,
+                agnostic_mode=False,
+                line_thickness=8,
+                min_score_thresh=0)
+    
+    class_and_confidence = {}
+    grade_dict = {0: "Grade A", 1: "Grade B", 2: "Grade C"}
+        
+    if len(detections['detection_classes']) == 0:
+        class_and_confidence = {"No detection found": 0}
+
+    else:
+        for idx in range(len(detections['detection_classes'])):
+            grade = grade_dict[detections['detection_classes'][idx]]
+
+            # takes the highest confidence level of each grade
+            if grade in class_and_confidence:
+                class_and_confidence[grade] = max(
+                    class_and_confidence[grade], detections['detection_scores'][idx])
+                
+            else:
+                class_and_confidence[grade] = detections['detection_scores'][idx]
+    
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+
+    plt.imshow(cv2.cvtColor(image_np_with_detections, cv2.COLOR_BGR2RGB))
+    plt.axis('off')
+    ax.get_xaxis().set_visible(False)
+    ax.get_yaxis().set_visible(False)
+    plt.savefig('results.jpg', bbox_inches='tight', pad_inches = 0, dpi = 300)
+
+    print(class_and_confidence)
+
+    best_class_and_confidence = max(class_and_confidence.items(), key=operator.itemgetter(1))
+
+    return_value = {best_class_and_confidence[0] : best_class_and_confidence[1].item()}
+    
+    print(return_value)
+
+    return return_value
 
 
 def detectron2(img, isVideo):
@@ -174,6 +273,8 @@ def yolov8(img_path, inp_format):
         # im.show()
         im.save('results.jpg')  # save image
 
+    print(class_and_confidence)
+
     return class_and_confidence
 
 
@@ -225,6 +326,9 @@ def image_classify(img, model, inp_format):
         # print("Running detectron2")
         result = detectron2(img, False)
 
+    elif model == Model.MOBILENET.value:
+        result = [mobilenet(img, False), "results.jpg"]
+
     else:
         print("no value match found")
 
@@ -243,6 +347,9 @@ def video_classify(img, model, inp_format):
     elif model == Model.DETECTRON.value:
         # print("Running detectron2")
         result = detectron2(img, True)
+
+    elif model == Model.MOBILENET.value:
+        result = [mobilenet(img, True), "results.jpg"]
 
     else:
         print("no value match found")

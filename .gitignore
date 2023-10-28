@@ -28,7 +28,17 @@ EBN-Grade-Classification/feather/
 /EBN-Grade-Classification/src/models/yoloV8/train
 /EBN-Grade-Classification/src/models/yoloV8/valid
 
-
 # website cache
 website/__pycache__
 /runs/
+
+# mobilenet
+models
+pipeline.config
+constraint.txt
+label_map.pbtxt
+
+# model weights
+model_final.pth
+ckpt-6.data-00000-of-00001
+ckpt-6.index
