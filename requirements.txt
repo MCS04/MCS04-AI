@@ -54,3 +54,8 @@ setuptools>=65.5.1 # Snyk vulnerability fix
 git+https://github.com/facebookresearch/detectron2.git
 opencv-python
 # torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118 # this one is compiled with cuda and is 2.7GB!!!
+
+# mobilenet
+pydantic==1.10.6
+pydantic-core==0.42.0
+fastapi==0.93.0
