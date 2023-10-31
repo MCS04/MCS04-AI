@@ -33,7 +33,7 @@ website/__pycache__
 /runs/
 
 # mobilenet
-models
+/EBN-Grade-Classification/website/models
 pipeline.config
 constraint.txt
 label_map.pbtxt
@@ -42,3 +42,5 @@ label_map.pbtxt
 model_final.pth
 ckpt-6.data-00000-of-00001
 ckpt-6.index
+ckpt-6-2.data-00000-of-00001
+ckpt-6-2.index
