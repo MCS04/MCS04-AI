@@ -63,9 +63,9 @@ predictor = DefaultPredictor(cfg)
 configs = config_util.get_configs_from_pipeline_file("pipeline.config")
 detection_model = model_builder.build(model_config=configs['model'], is_training=False)
 
-# Restore checkpoint
+# Restore checkpoint for mobilenet
 ckpt = tf.compat.v2.train.Checkpoint(model=detection_model)
-ckpt.restore(os.path.join(cfg.OUTPUT_DIR, 'ckpt-6')).expect_partial()
+ckpt.restore(os.path.join(cfg.OUTPUT_DIR, 'ckpt-6-2')).expect_partial()
 
 category_index = label_map_util.create_category_index_from_labelmap("label_map.pbtxt")
 
@@ -87,6 +87,7 @@ class Model(Enum):
 
 #     return f"This is Grade {class_label}"
 
+# detection function for mobilenet
 @tf.function
 def detect_fn(image):
     image, shapes = detection_model.preprocess(image)
@@ -98,17 +99,21 @@ def detect_fn(image):
 def mobilenet(img, isVideo):
     print("Running MOBILENET......")
     if not isVideo:
+        # read image uploaded
         img = cv2.imread(img)
 
     else:
         # rgb terbalik for video streaming, no need to cv2.imread as it comes in a numpy array
         img = img[:, :, ::-1]
 
+    # convert image to tensor
     image_np = np.array(img)
-
     input_tensor = tf.convert_to_tensor(np.expand_dims(image_np, 0), dtype=tf.float32)
+
+    # detect within the image
     detections = detect_fn(input_tensor)
 
+    # get number of detections and the detections array
     num_detections = int(detections.pop('num_detections'))
     detections = {key: value[0, :num_detections].numpy()
                 for key, value in detections.items()}
@@ -117,9 +122,13 @@ def mobilenet(img, isVideo):
     # detection_classes should be ints.
     detections['detection_classes'] = detections['detection_classes'].astype(np.int64)
 
+    # define label offser
     label_id_offset = 1
+
+    # make a copy of the image
     image_np_with_detections = image_np.copy()
 
+    # draw bounding box within the copied image
     viz_utils.visualize_boxes_and_labels_on_image_array(
                 image_np_with_detections,
                 detections['detection_boxes'],
@@ -132,13 +141,16 @@ def mobilenet(img, isVideo):
                 line_thickness=8,
                 min_score_thresh=0)
     
+    # define the class and confidence array dict of each grade
     class_and_confidence = {}
     grade_dict = {0: "Grade A", 1: "Grade B", 2: "Grade C"}
         
+    # if no detection, return no detection found
     if len(detections['detection_classes']) == 0:
         class_and_confidence = {"No detection found": 0}
 
     else:
+        # loop through the detections and get the class and confidence of each grade
         for idx in range(len(detections['detection_classes'])):
             grade = grade_dict[detections['detection_classes'][idx]]
 
@@ -150,19 +162,21 @@ def mobilenet(img, isVideo):
             else:
                 class_and_confidence[grade] = detections['detection_scores'][idx]
     
+    # define figure and axis variables
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
 
+    # plot the image and save it to results.jpg
     plt.imshow(cv2.cvtColor(image_np_with_detections, cv2.COLOR_BGR2RGB))
     plt.axis('off')
     ax.get_xaxis().set_visible(False)
     ax.get_yaxis().set_visible(False)
-    plt.savefig('results.jpg', bbox_inches='tight', pad_inches = 0, dpi = 300)
+    plt.savefig('results.jpg', bbox_inches ='tight', pad_inches = 0, dpi = 300)
 
-    print(class_and_confidence)
-
+    # get the best class and confidence
     best_class_and_confidence = max(class_and_confidence.items(), key=operator.itemgetter(1))
 
+    # change to suitable return data type
     return_value = {best_class_and_confidence[0] : best_class_and_confidence[1].item()}
     
     print(return_value)
@@ -227,6 +241,8 @@ def detectron2(img, isVideo):
                     class_and_confidence[grade], scores_list[idx])
             else:
                 class_and_confidence[grade] = scores_list[idx]
+
+    print(class_and_confidence)
 
     return [class_and_confidence, out.get_image()]
 
